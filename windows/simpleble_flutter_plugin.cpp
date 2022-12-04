@@ -10,6 +10,8 @@
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
 
+#include <simpleble/Adapter.h>
+
 #include <memory>
 #include <sstream>
 
@@ -65,7 +67,7 @@ namespace simpleble_flutter
     else if (method_call.method_name().compare("isBleAvailable") == 0)
     {
       // Here we need to check if Ble is Available
-      result->Success(true);
+      result->Success(SimpleBLE::Adapter::bluetooth_enabled());
     }
     else
     {
