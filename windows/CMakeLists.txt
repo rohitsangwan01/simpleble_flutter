@@ -4,6 +4,9 @@
 # customers of the plugin.
 cmake_minimum_required(VERSION 3.14)
 
+# This will let CMake know where to find packages that we specify.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/find)
+
 # Project-level configuration.
 set(PROJECT_NAME "simpleble_flutter")
 project(${PROJECT_NAME} LANGUAGES CXX)
@@ -18,6 +21,8 @@ list(APPEND PLUGIN_SOURCES
   "simpleble_flutter_plugin.h"
 )
 
+find_package(simpleble REQUIRED)
+
 # Define the plugin library target. Its name must not be changed (see comment
 # on PLUGIN_NAME above).
 add_library(${PLUGIN_NAME} SHARED
@@ -29,7 +34,7 @@ add_library(${PLUGIN_NAME} SHARED
 # Apply a standard set of build settings that are configured in the
 # application-level CMakeLists.txt. This can be removed for plugins that want
 # full control over build settings.
-apply_standard_settings(${PLUGIN_NAME})
+# apply_standard_settings(${PLUGIN_NAME}) # TODO: Uncomment if needed
 
 # Symbols are hidden by default to reduce the chance of accidental conflicts
 # between plugins. This should not be removed; any symbols that should be
@@ -42,7 +47,7 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 # dependencies here.
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
+target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin simpleble::simpleble)
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
