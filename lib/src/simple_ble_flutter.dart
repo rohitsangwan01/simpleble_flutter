@@ -33,8 +33,29 @@ class SimpleBleFlutter {
   static Future<void> disconnect(String deviceId) =>
       _channel.disconnect(deviceId);
 
-  static Future<void> discoverServices(String deviceId) =>
-      _channel.discoverServices(deviceId);
+  // TODO : Fix discoverServices parsing
+  static Future<List<BleService>> discoverServices(String deviceId) async {
+    var servicesResult = await _channel.discoverServices(deviceId);
+    List<BleService> services = [];
+    for (var service in servicesResult) {
+      var bleServiceRaw = service?.entries.first;
+      if (bleServiceRaw == null) continue;
+      String serviceId = bleServiceRaw.key ?? "";
+      Map<String?, List<int?>?> characteristics = bleServiceRaw.value ?? {};
+      List<BleCharacteristic> bleCharacteristics = [];
+      for (var element in characteristics.entries) {
+        String characteristicId = element.key ?? "";
+        List<int?>? characteristicValues = element.value ?? [];
+        List<CharacteristicProperty>? properties = characteristicValues
+            .where((element) => element != null)
+            .map((e) => CharacteristicProperty.parse(e!))
+            .toList();
+        bleCharacteristics.add(BleCharacteristic(characteristicId, properties));
+      }
+      services.add(BleService(serviceId, bleCharacteristics));
+    }
+    return services;
+  }
 
   static Future<void> setNotifiable(String deviceId, String service,
       String characteristic, BleInputProperty bleInputProperty) {
@@ -46,10 +67,9 @@ class SimpleBleFlutter {
     );
   }
 
-  static Future<void> readValue(
-      String deviceId, String service, String characteristic) {
-    return _channel.readValue(deviceId, service, characteristic);
-  }
+  static Future<Uint8List> readValue(
+          String deviceId, String service, String characteristic) =>
+      _channel.readValue(deviceId, service, characteristic);
 
   static Future<void> writeValue(
       String deviceId,
@@ -66,7 +86,7 @@ class SimpleBleFlutter {
     );
   }
 
-  static Future<void> requestMtu(String deviceId, int expectedMtu) =>
+  static Future<int> requestMtu(String deviceId, int expectedMtu) =>
       _channel.requestMtu(deviceId, expectedMtu);
 }
 

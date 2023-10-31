@@ -50,6 +50,7 @@ class _MyAppState extends State<MyApp> {
         (String deviceId, BleConnectionState state) {
       print("$deviceId $state");
       if (state == BleConnectionState.connected) {
+        onDeviceConnected(deviceId);
         if (!connectedDevices.contains(deviceId)) {
           setState(() {
             connectedDevices.add(deviceId);
@@ -68,6 +69,19 @@ class _MyAppState extends State<MyApp> {
         (String deviceId, String characteristicId, Uint8List value) {
       print("$deviceId $characteristicId $value");
     };
+  }
+
+  void onDeviceConnected(String deviceId) async {
+    // print("Device connected: $deviceId");
+    // try {
+    //   List<BleService> services =
+    //       await SimpleBleFlutter.discoverServices(deviceId);
+    //   for (var service in services) {
+    //     print("Service: ${service.uuid}");
+    //   }
+    // } catch (e) {
+    //   print(e);
+    // }
   }
 
   @override
