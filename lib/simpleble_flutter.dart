@@ -1,17 +1,4 @@
-import 'package:flutter/services.dart';
+library simple_ble_flutter;
 
-class SimplebleFlutter {
-  final methodChannel = const MethodChannel('simpleble_flutter');
-
-  Future<String?> getPlatformVersion() async {
-    final version =
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
-  }
-
-  /// this will call native code , to check if bluetooth is available
-  Future<bool> isBleAvailable() async {
-    final result = await methodChannel.invokeMethod<bool>('isBleAvailable');
-    return result ?? false;
-  }
-}
+export 'package:simpleble_flutter/src/models.dart';
+export 'package:simpleble_flutter/src/simple_ble_flutter.dart';

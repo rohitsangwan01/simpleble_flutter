@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
-import 'dart:async';
+// ignore_for_file: avoid_print
 
-import 'package:flutter/services.dart';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+
 import 'package:simpleble_flutter/simpleble_flutter.dart';
 
 void main() {
@@ -21,53 +23,138 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-  final _simplebleFlutterPlugin = SimplebleFlutter();
-  String bleAvailabilityState = 'Unknown';
+  List<BleScanResult> scanResults = [];
+  List<String> connectedDevices = [];
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
-  }
+    SimpleBleFlutter.initialize();
 
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    try {
-      platformVersion = await _simplebleFlutterPlugin.getPlatformVersion() ??
-          'Unknown platform version';
-      if (!mounted) return;
-      setState(() {
-        _platformVersion = platformVersion;
-      });
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-  }
+    SimpleBleFlutter.onScanResult = (BleScanResult scanResult) {
+      if (!scanResults
+          .any((element) => element.deviceId == scanResult.deviceId)) {
+        setState(() {
+          scanResults.add(scanResult);
+        });
+      } else {
+        int index = scanResults
+            .indexWhere((element) => element.deviceId == scanResult.deviceId);
+        setState(() {
+          scanResults[index] = scanResult;
+        });
+      }
+    };
 
-  Future checkBle() async {
-    bool available = await _simplebleFlutterPlugin.isBleAvailable();
-    setState(() {
-      bleAvailabilityState = available ? "Available" : "Not Available";
-    });
+    SimpleBleFlutter.onConnectionChanged =
+        (String deviceId, BleConnectionState state) {
+      print("$deviceId $state");
+      if (state == BleConnectionState.connected) {
+        if (!connectedDevices.contains(deviceId)) {
+          setState(() {
+            connectedDevices.add(deviceId);
+          });
+        }
+      } else {
+        if (connectedDevices.contains(deviceId)) {
+          setState(() {
+            connectedDevices.remove(deviceId);
+          });
+        }
+      }
+    };
+
+    SimpleBleFlutter.onValueChanged =
+        (String deviceId, String characteristicId, Uint8List value) {
+      print("$deviceId $characteristicId $value");
+    };
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plugin example app'),
+        title: const Text('SimpleBle Flutter'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        child: Column(
           children: [
-            ElevatedButton(
-                onPressed: () => checkBle(),
-                child: const Text("Check BleAvailability")),
-            Text("Ble Availability $bleAvailabilityState"),
-            Text('Running on: $_platformVersion\n'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton(
+                    onPressed: () => SimpleBleFlutter.startScan(),
+                    child: const Text("Start Scan")),
+                FutureBuilder(
+                    future: SimpleBleFlutter.isBluetoothAvailable(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return Text(
+                            "BleAvailable: ${snapshot.data.toString()}");
+                      } else {
+                        return const Text("BleAvailable: Loadig..");
+                      }
+                    }),
+                ElevatedButton(
+                    onPressed: () => SimpleBleFlutter.stopScan(),
+                    child: const Text("Stop Scan")),
+              ],
+            ),
+            const Divider(),
+            Expanded(
+              child: ListView.builder(
+                itemCount: scanResults.length,
+                itemBuilder: (BuildContext context, int index) {
+                  String? name = scanResults[index].name;
+                  if (name == null || name.isEmpty) name = "NA";
+                  bool isConnected =
+                      connectedDevices.contains(scanResults[index].deviceId);
+                  String deviceId = scanResults[index].deviceId;
+                  return ListTile(
+                    title: Text("$name ( ${scanResults[index].rssi} )"),
+                    subtitle: Text(deviceId),
+                    tileColor: isConnected ? Colors.green[100] : null,
+                    trailing: isConnected
+                        ? const Icon(Icons.bluetooth_connected)
+                        : null,
+                    onTap: () {
+                      showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title:
+                                  Text("Connect to ${scanResults[index].name}"),
+                              actions: [
+                                TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text("Cancel")),
+                                TextButton(
+                                    onPressed: () async {
+                                      Navigator.pop(context);
+                                      try {
+                                        !isConnected
+                                            ? await SimpleBleFlutter.connect(
+                                                deviceId)
+                                            : await SimpleBleFlutter.disconnect(
+                                                deviceId);
+                                      } catch (e) {
+                                        print(e);
+                                      }
+                                    },
+                                    child: Text(
+                                      isConnected ? "Disconnect" : "Connect",
+                                    )),
+                              ],
+                            );
+                          });
+                    },
+                  );
+                },
+              ),
+            )
           ],
         ),
       ),
